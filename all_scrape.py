@@ -1606,8 +1606,10 @@ def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped
 
 
         try:
-            print(f"  [HiringCafe] Executing Headless GET Request (impersonating Chrome 124)...")
-            r = cffi_requests.get(target_url, impersonate="chrome124", timeout=15)
+            impersonate_targets = ["chrome116", "chrome120", "chrome124", "safari15_3", "safari17_0", "edge101"]
+            impersonation = random.choice(impersonate_targets)
+            print(f"  [HiringCafe] Executing Headless GET Request (impersonating {impersonation})...")
+            r = cffi_requests.get(target_url, impersonate=impersonation, timeout=15)
             
             if r.status_code == 200 and "__NEXT_DATA__" in r.text:
                 print("  [HiringCafe] Cloudflare Bypass SUCCESS! Extracting JSON payload...")
@@ -1667,7 +1669,7 @@ def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped
                                 for jd_attempt in range(3):
                                     try:
                                         jd_url = f"https://hiringcafe.com/api/job-description?id={raw_id}"
-                                        jd_r = cffi_requests.get(jd_url, impersonate="chrome124", timeout=5)
+                                        jd_r = cffi_requests.get(jd_url, impersonate=impersonation, timeout=5)
                                         if jd_r.status_code == 200:
                                             fetched_desc = jd_r.json().get('job', {}).get('job_information', {}).get('description')
                                             if fetched_desc:
