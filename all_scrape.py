@@ -1612,160 +1612,175 @@ def scrape_reed_jobs(driver, url, category, on_count=None, on_job_scraped=None, 
     return jobs
 
 def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped=None, count_only=False):
-    print(f"\n[HiringCafe - {category}] Fetching jobs headlessly via JSON payload...")
-    
+    print(f"\n[HiringCafe - {category}] Fetching jobs via curl_cffi session...")
+
     if not _CURL_CFFI_AVAILABLE:
-        print("  [HiringCafe] Error: curl_cffi is required for headless bypass.")
+        print("  [HiringCafe] Error: curl_cffi is required.")
         return []
 
-    target_url = url if (url and url.startswith("http")) else f"https://hiringcafe.com/jobs?q={category.replace(' ', '+')}"
-    
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
-        if attempt > 1:
-            # Fix 5: sleep only on retries — there's nothing to rate-limit on
-            # the first attempt, so the 5–10 s delay was pure waste.
-            delay = random.uniform(8.0, 12.0)
-            print(f"  [HiringCafe] Retry attempt {attempt}/{max_retries}. Waiting {delay:.1f}s...")
-            time.sleep(delay)
+    target_url = url if (url and url.startswith("http")) else f"https://hiringcafe.com/?searchState=%7B%22searchQuery%22%3A%22{category.replace(' ', '+')}%22%7D"
 
+    # Strategy: cycle through ALL impersonations with a persistent session.
+    # A session carries cookies so Cloudflare's challenge cookie is reused once earned.
+    # On Render the IP is datacenter — we try every fingerprint before giving up.
+    IMPERSONATE_ORDER = [
+        "safari17_0", "chrome124", "safari15_3",
+        "chrome120", "chrome116", "edge101",
+    ]
 
+    def _extract_jobs_from_html(page_content):
+        """Parse __NEXT_DATA__ and return list of job dicts, or None on failure."""
+        if "__NEXT_DATA__" not in page_content:
+            return None
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(page_content, 'html.parser')
+        script_tag = soup.find('script', id='__NEXT_DATA__')
+        if not script_tag:
+            return None
+        data = json.loads(script_tag.string)
+        hits = data.get('props', {}).get('pageProps', {}).get('ssrHits', [])
+        return hits
+
+    # ── Phase 1: curl_cffi session cycling ─────────────────────────────────────
+    session = cffi_requests.Session()
+    page_content = None
+    succeeded_impersonation = None
+
+    for imp in IMPERSONATE_ORDER:
         try:
-            impersonate_targets = ["chrome116", "chrome120", "chrome124", "safari15_3", "safari17_0", "edge101"]
-            impersonation = random.choice(impersonate_targets)
-            print(f"  [HiringCafe] Executing Headless GET Request (impersonating {impersonation})...")
-            r = cffi_requests.get(target_url, impersonate=impersonation, timeout=15)
-            page_content = r.text
-            
-            if r.status_code != 200 or "__NEXT_DATA__" not in page_content:
-                print(f"  [HiringCafe] curl_cffi blocked! Status: {r.status_code}. Falling back to Selenium...")
-                if driver:
-                    try:
-                        driver.delete_all_cookies() # Clear cookies to reset Cloudflare session
-                        driver.get(target_url)
-                        time.sleep(random.uniform(5.0, 7.0))
-                        page_content = driver.page_source
-                    except Exception as selenium_e:
-                        print(f"  [HiringCafe] Selenium fallback failed: {selenium_e}")
-            
-            if "__NEXT_DATA__" in page_content:
-                print("  [HiringCafe] Cloudflare Bypass SUCCESS! Extracting JSON payload...")
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(page_content, 'html.parser')
-                script_tag = soup.find('script', id='__NEXT_DATA__')
-                if script_tag:
-                    data = json.loads(script_tag.string)
-                    hits = data.get('props', {}).get('pageProps', {}).get('ssrHits', [])
-                    if hits:
-                        print(f"  [HiringCafe] Extracted {len(hits)} perfectly structured jobs!")
-                        
-                        if count_only:
-                            if on_count: on_count(category, "HiringCafe", str(len(hits)), len(hits))
-                            return []
-                            
-                        jobs = []
-                        for i, hit in enumerate(hits[:HIRINGCAFE_JOBS_PER_URL]):
-                            v5 = hit.get('v5_processed_job_data', {})
-                            info = hit.get('job_information', {})
-                            
-                            raw_id = hit.get('id') or hit.get('job_id')
-                            title = info.get('title') or v5.get('core_job_title') or "Software Engineer"
-                            company = v5.get('company_name') or hit.get('enriched_company_data', {}).get('name') or "Unknown"
-                            location = v5.get('formatted_workplace_location') or "United States"
-                            
-                            commitment = v5.get('commitment', ['Full Time'])
-                            workplace_type = v5.get('workplace_type', 'Remote')
-                            job_type = f"{workplace_type} - {commitment[0]}" if commitment else workplace_type
-                            
-                            yoe = v5.get('min_industry_and_role_yoe')
-                            experience = f"{yoe}+ Years" if yoe is not None else None
-                            
-                            skills = v5.get('technical_tools', [])
-                            if not skills:
-                                skills = extract_skills_from_text(v5.get('requirements_summary', ''))
-                                
-                            post_time = v5.get('estimated_publish_date') or datetime.now().isoformat()
-                            
-                            salary = None
-                            if v5.get('yearly_min_compensation') and v5.get('yearly_max_compensation'):
-                                salary = f"${v5['yearly_min_compensation']} - ${v5['yearly_max_compensation']}"
-                                
-                            job_url = hit.get('apply_url')
-                            if not job_url and raw_id:
-                                slug = re.sub(r"[^a-zA-Z0-9-]", "-", title.lower())
-                                job_url = f"https://hiringcafe.com/job/{slug}-{raw_id}"
-
-                            domain = hit.get('enriched_company_data', {}).get('homepage_uri')
-                            logo_url = None
-                            if domain:
-                                logo_url = f"https://s2.googleusercontent.com/s2/favicons?domain={domain}&sz=128"
-
-                            # Fetch full description from API if not present
-                            full_desc_html = hit.get('job_information', {}).get('description') or v5.get('description') or v5.get('original_description')
-                            if not full_desc_html and raw_id:
-                                for jd_attempt in range(3):
-                                    try:
-                                        jd_url = f"https://hiringcafe.com/api/job-description?id={raw_id}"
-                                        jd_r = cffi_requests.get(jd_url, impersonate=impersonation, timeout=5)
-                                        if jd_r.status_code == 200:
-                                            fetched_desc = jd_r.json().get('job', {}).get('job_information', {}).get('description')
-                                            if fetched_desc:
-                                                full_desc_html = fetched_desc
-                                            break
-                                    except Exception:
-                                        if jd_attempt < 2:
-                                            time.sleep(1)
-                                        pass
-                                    
-                            final_desc = full_desc_html or v5.get('requirements_summary', '')
-
-                            job_data = {
-                                "jobId":            make_stable_job_id('HiringCafe', job_url, i),
-                                "jobTitle":         title[:500],
-                                "companyName":      company[:255],
-                                "companyLogo":      logo_url,
-                                "companyLocation":  location[:255],
-                                "jobLocation":      location[:255],
-                                "jobType":          job_type[:50],
-                                "yearOfExperience": experience,
-                                "skills":           skills,
-                                "jobPostTime":      post_time,
-                                "jobDescription":   final_desc,
-                                "salary":           salary,
-                                "category":         category,
-                                "jobSource":        "HiringCafe",
-                                "jobUrl":           (job_url or "")[:1000],
-                                "createdAt":        datetime.now().isoformat(),
-                                "updatedAt":        datetime.now().isoformat(),
-                            }
-                            
-                            # Filter out truly empty descriptions (lowered from 300 to 100 per user request)
-                            if not final_desc or len(final_desc.strip()) < 200:
-                                print(f"  [HiringCafe] Skipping job {title[:30]} - description too short ({len(final_desc) if final_desc else 0} chars)")
-                                continue
-                                
-                            jobs.append(job_data)
-                            if on_job_scraped: on_job_scraped(category, "HiringCafe", job_data)
-                            
-                        print(f"\n[HiringCafe] Done: {len(jobs)} jobs collected completely headlessly for '{category}'")
-                        return jobs
-                print("  [HiringCafe] JSON payload was empty.")
-                return []
+            print(f"  [HiringCafe] Trying impersonation: {imp}...")
+            r = session.get(target_url, impersonate=imp, timeout=20)
+            if r.status_code == 200 and "__NEXT_DATA__" in r.text:
+                page_content = r.text
+                succeeded_impersonation = imp
+                print(f"  [HiringCafe] Bypass SUCCESS with {imp}!")
+                break
             else:
-                print(f"  [HiringCafe] Both curl_cffi and Selenium failed to bypass Cloudflare.")
-                if attempt < max_retries:
-                    print("  [HiringCafe] Blocked. Will retry...")
-                    continue
-                return []
-
+                print(f"  [HiringCafe] {imp} blocked (HTTP {r.status_code}). Trying next...")
+                time.sleep(random.uniform(2.0, 3.5))
         except Exception as e:
-            print(f"  [HiringCafe] Error during scraping: {e}")
-            if attempt < max_retries:
-                print("  [HiringCafe] Exception encountered. Will retry...")
-                continue
+            print(f"  [HiringCafe] {imp} error: {e}. Trying next...")
+            time.sleep(1.0)
+
+    # ── Phase 2: Selenium fallback (last resort) ────────────────────────────────
+    if not page_content and driver:
+        print("  [HiringCafe] All curl_cffi impersonations blocked. Trying Selenium...")
+        try:
+            driver.delete_all_cookies()
+            driver.get(target_url)
+            time.sleep(random.uniform(6.0, 9.0))
+            page_content = driver.page_source
+            if "__NEXT_DATA__" in page_content:
+                print("  [HiringCafe] Selenium bypass SUCCESS!")
+            else:
+                print("  [HiringCafe] Selenium also blocked. Giving up.")
+                return []
+        except Exception as selenium_e:
+            print(f"  [HiringCafe] Selenium fallback failed: {selenium_e}")
             return []
-            
-    return []
+
+    if not page_content or "__NEXT_DATA__" not in page_content:
+        print("  [HiringCafe] Could not retrieve page. Returning empty.")
+        return []
+
+    hits = _extract_jobs_from_html(page_content)
+    if not hits:
+        print("  [HiringCafe] JSON payload was empty or unparseable.")
+        return []
+
+    print(f"  [HiringCafe] Extracted {len(hits)} perfectly structured jobs!")
+
+    if count_only:
+        if on_count: on_count(category, "HiringCafe", str(len(hits)), len(hits))
+        return []
+
+    # Use the succeeded impersonation for any follow-up API calls
+    imp = succeeded_impersonation or "safari17_0"
+    jobs = []
+    for i, hit in enumerate(hits[:HIRINGCAFE_JOBS_PER_URL]):
+        v5 = hit.get('v5_processed_job_data', {})
+        info = hit.get('job_information', {})
+
+        raw_id = hit.get('id') or hit.get('job_id')
+        title = info.get('title') or v5.get('core_job_title') or "Software Engineer"
+        company = v5.get('company_name') or hit.get('enriched_company_data', {}).get('name') or "Unknown"
+        location = v5.get('formatted_workplace_location') or "United States"
+
+        commitment = v5.get('commitment', ['Full Time'])
+        workplace_type = v5.get('workplace_type', 'Remote')
+        job_type = f"{workplace_type} - {commitment[0]}" if commitment else workplace_type
+
+        yoe = v5.get('min_industry_and_role_yoe')
+        experience = f"{yoe}+ Years" if yoe is not None else None
+
+        skills = v5.get('technical_tools', [])
+        if not skills:
+            skills = extract_skills_from_text(v5.get('requirements_summary', ''))
+
+        post_time = v5.get('estimated_publish_date') or datetime.now().isoformat()
+
+        salary = None
+        if v5.get('yearly_min_compensation') and v5.get('yearly_max_compensation'):
+            salary = f"${v5['yearly_min_compensation']} - ${v5['yearly_max_compensation']}"
+
+        job_url = hit.get('apply_url')
+        if not job_url and raw_id:
+            slug = re.sub(r"[^a-zA-Z0-9-]", "-", title.lower())
+            job_url = f"https://hiringcafe.com/job/{slug}-{raw_id}"
+
+        domain = hit.get('enriched_company_data', {}).get('homepage_uri')
+        logo_url = None
+        if domain:
+            logo_url = f"https://s2.googleusercontent.com/s2/favicons?domain={domain}&sz=128"
+
+        # Fetch full description from API if not present
+        full_desc_html = hit.get('job_information', {}).get('description') or v5.get('description') or v5.get('original_description')
+        if not full_desc_html and raw_id:
+            for jd_attempt in range(3):
+                try:
+                    jd_url = f"https://hiringcafe.com/api/job-description?id={raw_id}"
+                    jd_r = session.get(jd_url, impersonate=imp, timeout=8)
+                    if jd_r.status_code == 200:
+                        fetched_desc = jd_r.json().get('job', {}).get('job_information', {}).get('description')
+                        if fetched_desc:
+                            full_desc_html = fetched_desc
+                        break
+                except Exception:
+                    if jd_attempt < 2:
+                        time.sleep(1)
+                    pass
+
+        final_desc = full_desc_html or v5.get('requirements_summary', '')
+
+        job_data = {
+            "jobId":            make_stable_job_id('HiringCafe', job_url, i),
+            "jobTitle":         title[:500],
+            "companyName":      company[:255],
+            "companyLogo":      logo_url,
+            "companyLocation":  location[:255],
+            "jobLocation":      location[:255],
+            "jobType":          job_type[:50],
+            "yearOfExperience": experience,
+            "skills":           skills,
+            "jobPostTime":      post_time,
+            "jobDescription":   final_desc,
+            "salary":           salary,
+            "category":         category,
+            "jobSource":        "HiringCafe",
+            "jobUrl":           (job_url or "")[:1000],
+            "createdAt":        datetime.now().isoformat(),
+            "updatedAt":        datetime.now().isoformat(),
+        }
+
+        if not final_desc or len(final_desc.strip()) < 200:
+            print(f"  [HiringCafe] Skipping job {title[:30]} - description too short ({len(final_desc) if final_desc else 0} chars)")
+            continue
+
+        jobs.append(job_data)
+        if on_job_scraped: on_job_scraped(category, "HiringCafe", job_data)
+
+    print(f"\n[HiringCafe] Done: {len(jobs)} jobs collected for '{category}'")
+    return jobs
 
 
 #---------INDEED SCRAPPER ----------
