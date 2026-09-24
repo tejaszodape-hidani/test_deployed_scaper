@@ -1,0 +1,30 @@
+# ── Core Python / HTTP ────────────────────────────────────────────────────────
+requests>=2.31.0
+urllib3>=1.26.18
+setuptools>=70.0.0      # provides distutils (removed from stdlib in Python 3.12+)
+
+# ── curl_cffi — Chrome TLS fingerprint impersonation (SimplyHired bypass) ────
+# Optional but highly recommended.  Falls back gracefully if missing.
+curl_cffi>=0.6.2
+
+# ── Browser automation ────────────────────────────────────────────────────────
+selenium>=4.18.0
+selenium-stealth>=1.0.6
+undetected-chromedriver>=3.5.5
+webdriver-manager>=4.0.1
+
+# ── Database ──────────────────────────────────────────────────────────────────
+sqlalchemy>=2.0.28
+pymysql>=1.1.0          # MySQL driver used by SQLAlchemy (mysql+pymysql://)
+cryptography>=42.0.0    # required by PyMySQL for SSL / caching_sha2_password
+python-dotenv>=1.0.0
+
+# ── Data / parsing ────────────────────────────────────────────────────────────
+beautifulsoup4>=4.12.3
+lxml>=5.1.0             # fast HTML parser used by BeautifulSoup
+pandas>=2.2.1
+openpyxl>=3.1.2         # xlsx read/write (required by workday_scraper)
+certifi>=2024.2.2       # CA bundle — fixes SSL errors on macOS
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+schedule>=1.2.1         # used by run_scrapers.py for 24-hr scheduling

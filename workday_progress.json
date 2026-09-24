@@ -1,0 +1,20 @@
+{
+  "completed_companies": [
+    "Snap",
+    "ALSAC",
+    "Parsons",
+    "Credit Acceptance",
+    "State Street",
+    "Chickasaw Nation Industries",
+    "Capital One",
+    "LexisNexis Risk Solutions",
+    "M&T Bank",
+    "C.H. Robinson",
+    "F5",
+    "NVIDIA"
+  ],
+  "failed_companies": {},
+  "total_jobs_scraped": 20,
+  "last_updated": "2026-09-23T00:47:57.897854",
+  "status": "completed"
+}

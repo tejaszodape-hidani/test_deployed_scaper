@@ -1,0 +1,31 @@
+{
+    "status": "in_progress",
+    "startedAt": "2026-09-23T16:53:30.726572",
+    "updatedAt": "2026-09-23T16:54:15.755925",
+    "mode": "count_and_scrape",
+    "summary": {
+        "totalCategories": 1,
+        "completedCategories": 1,
+        "totalPlatformSearches": 1,
+        "completedPlatformSearches": 1,
+        "totalScrapableLinksQueued": 0,
+        "totalJobsScrapedSuccessfully": 0,
+        "totalJobsSaved": 0
+    },
+    "categories": {
+        "Software Engineer": {
+            "status": "completed",
+            "platforms": {
+                "Indeed": {
+                    "url": "https://www.indeed.com/jobs?q=senior+software+engineer&l=United+States&radius=50&fromage=1&from=searchOnDesktopSerp&start=10&vjk=0587d8a995448eba",
+                    "availableReported": "Unknown",
+                    "scrapableLinksQueued": 0,
+                    "scrapedCount": 0,
+                    "status": "completed"
+                }
+            },
+            "totalScraped": 0
+        }
+    },
+    "recentJobs": []
+}

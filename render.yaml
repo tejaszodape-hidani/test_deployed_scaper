@@ -1,0 +1,49 @@
+# render.yaml — Render Infrastructure as Code
+# Docs: https://render.com/docs/infrastructure-as-code
+#
+# Service type: Background Worker
+#   - No HTTP port exposed (scrapers don't serve web traffic)
+#   - Runs continuously, restarted automatically on crash
+#   - Built from the Dockerfile in this repo
+
+services:
+  - name: job-scraper
+    type: worker                   # Background Worker (not a web service)
+    runtime: docker                # Use our Dockerfile
+    dockerfilePath: ./Dockerfile   # Path to Dockerfile
+
+    # ── Instance size ────────────────────────────────────────────────────────
+    # Starter (512 MB) is enough for sequential mode.
+    # Upgrade to Standard (2 GB) if you enable USE_WORKERS=true in workday_scraper.
+    plan: starter
+
+    # ── Environment variables ────────────────────────────────────────────────
+    # Set SECRET values (DATABASE_URL, etc.) in the Render dashboard:
+    #   Dashboard → job-scraper → Environment → Add Environment Variable
+    #
+    # Non-secret values can be listed here:
+    envVars:
+      # Chrome paths (already set in Dockerfile, listed here for visibility)
+      - key: CHROME_BIN
+        value: /usr/bin/chromium
+      - key: CHROMEDRIVER_PATH
+        value: /usr/bin/chromedriver
+
+      # Persistence toggles
+      - key: SAVE_TO_DB
+        value: "true"
+      - key: SAVE_TO_DATABASE
+        value: "true"
+      - key: SAVE_TO_JSON
+        value: "false"    # disable JSON files on Render (ephemeral filesystem)
+      - key: USE_API
+        value: "false"
+
+      # Run interval (hours) — 24 = once per day
+      # To change: update this value and redeploy
+      - key: SCRAPER_INTERVAL_HOURS
+        value: "24"
+
+      # DATABASE_URL — set this in the Render dashboard (it contains credentials)
+      # - key: DATABASE_URL
+      #   value: mysql://user:pass@host:3306/dbname
