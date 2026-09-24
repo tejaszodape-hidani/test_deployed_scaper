@@ -613,7 +613,6 @@ def setup_chrome_driver():
         opt.add_argument("--window-size=1280,800")
 
         # ── Memory-saving flags (safe on all platforms) ─────────────────────────
-        opt.add_argument("--js-flags=--max-old-space-size=128")
         opt.add_argument("--disk-cache-size=1")
         opt.add_argument("--media-cache-size=1")
         opt.add_argument("--disable-background-networking")
@@ -653,14 +652,40 @@ def setup_chrome_driver():
         # In Docker/Render, we MUST specify the browser path for UC
         if os.path.exists(chrome_bin):
             print(f"[Browser] Using Chrome binary at: {chrome_bin}")
-            driver = uc.Chrome(
-                options=options,
-                browser_executable_path=chrome_bin,
-                driver_executable_path=chromedriver_path if os.path.exists(chromedriver_path) else None,
-                use_subprocess=True
-            )
+            try:
+                driver = uc.Chrome(
+                    options=options,
+                    browser_executable_path=chrome_bin,
+                    driver_executable_path=chromedriver_path if os.path.exists(chromedriver_path) else None,
+                    use_subprocess=True
+                )
+            except Exception as uc_e:
+                import re
+                m = re.search(r"Current browser version is (\d+)", str(uc_e))
+                if m:
+                    v = int(m.group(1))
+                    print(f"[Browser] UC version mismatch. Retrying with version_main={v}...")
+                    driver = uc.Chrome(
+                        options=options,
+                        browser_executable_path=chrome_bin,
+                        driver_executable_path=chromedriver_path if os.path.exists(chromedriver_path) else None,
+                        use_subprocess=True,
+                        version_main=v
+                    )
+                else:
+                    raise
         else:
-            driver = uc.Chrome(options=options, use_subprocess=True)
+            try:
+                driver = uc.Chrome(options=options, use_subprocess=True)
+            except Exception as uc_e:
+                import re
+                m = re.search(r"Current browser version is (\d+)", str(uc_e))
+                if m:
+                    v = int(m.group(1))
+                    print(f"[Browser] UC version mismatch. Retrying with version_main={v}...")
+                    driver = uc.Chrome(options=options, use_subprocess=True, version_main=v)
+                else:
+                    raise
 
         # 0 + explicit WebDriverWait is the correct pattern (mixing causes
         # unpredictable cumulative timeouts — Selenium docs)
@@ -1610,11 +1635,23 @@ def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped
             impersonation = random.choice(impersonate_targets)
             print(f"  [HiringCafe] Executing Headless GET Request (impersonating {impersonation})...")
             r = cffi_requests.get(target_url, impersonate=impersonation, timeout=15)
+            page_content = r.text
             
-            if r.status_code == 200 and "__NEXT_DATA__" in r.text:
+            if r.status_code != 200 or "__NEXT_DATA__" not in page_content:
+                print(f"  [HiringCafe] curl_cffi blocked! Status: {r.status_code}. Falling back to Selenium...")
+                if driver:
+                    try:
+                        driver.delete_all_cookies() # Clear cookies to reset Cloudflare session
+                        driver.get(target_url)
+                        time.sleep(random.uniform(5.0, 7.0))
+                        page_content = driver.page_source
+                    except Exception as selenium_e:
+                        print(f"  [HiringCafe] Selenium fallback failed: {selenium_e}")
+            
+            if "__NEXT_DATA__" in page_content:
                 print("  [HiringCafe] Cloudflare Bypass SUCCESS! Extracting JSON payload...")
                 from bs4 import BeautifulSoup
-                soup = BeautifulSoup(r.text, 'html.parser')
+                soup = BeautifulSoup(page_content, 'html.parser')
                 script_tag = soup.find('script', id='__NEXT_DATA__')
                 if script_tag:
                     data = json.loads(script_tag.string)
@@ -1715,7 +1752,7 @@ def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped
                 print("  [HiringCafe] JSON payload was empty.")
                 return []
             else:
-                print(f"  [HiringCafe] curl_cffi blocked! Status: {r.status_code}")
+                print(f"  [HiringCafe] Both curl_cffi and Selenium failed to bypass Cloudflare.")
                 if attempt < max_retries:
                     print("  [HiringCafe] Blocked. Will retry...")
                     continue

@@ -1,31 +1,376 @@
 {
     "status": "in_progress",
-    "startedAt": "2026-09-23T16:53:30.726572",
-    "updatedAt": "2026-09-23T16:54:15.755925",
+    "startedAt": "2026-09-24T11:26:53.182564",
+    "updatedAt": "2026-09-24T11:28:52.396031",
     "mode": "count_and_scrape",
     "summary": {
-        "totalCategories": 1,
-        "completedCategories": 1,
-        "totalPlatformSearches": 1,
-        "completedPlatformSearches": 1,
+        "totalCategories": 30,
+        "completedCategories": 0,
+        "totalPlatformSearches": 290,
+        "completedPlatformSearches": 3,
         "totalScrapableLinksQueued": 0,
-        "totalJobsScrapedSuccessfully": 0,
-        "totalJobsSaved": 0
+        "totalJobsScrapedSuccessfully": 71,
+        "totalJobsSaved": 35
     },
     "categories": {
         "Software Engineer": {
-            "status": "completed",
+            "status": "in_progress",
             "platforms": {
-                "Indeed": {
-                    "url": "https://www.indeed.com/jobs?q=senior+software+engineer&l=United+States&radius=50&fromage=1&from=searchOnDesktopSerp&start=10&vjk=0587d8a995448eba",
-                    "availableReported": "Unknown",
+                "HiringCafe1": {
+                    "url": "https://hiringcafe.com/?searchState=%7B%22locations%22%3A%5B%7B%22id%22%3A%22FxY1yZQBoEtHp_8UEq7V%22%2C%22types%22%3A%5B%22country%22%5D%2C%22address_components%22%3A%5B%7B%22long_name%22%3A%22United+States%22%2C%22short_name%22%3A%22US%22%2C%22types%22%3A%5B%22country%22%5D%7D%5D%2C%22formatted_address%22%3A%22United+States%22%2C%22population%22%3A327167434%2C%22workplace_types%22%3A%5B%5D%2C%22options%22%3A%7B%22flexible_regions%22%3A%5B%22anywhere_in_continent%22%2C%22anywhere_in_world%22%5D%7D%7D%5D%2C%22searchQuery%22%3A%22full+stack+engineer%22%2C%22applicationFormEase%22%3A%5B%22Time+Consuming%22%5D%2C%22dateFetchedPastNDays%22%3A2%2C%22securityClearances%22%3A%5B%22None%22%5D%7D",
+                    "availableReported": "Pending",
+                    "scrapableLinksQueued": 0,
+                    "scrapedCount": 31,
+                    "status": "completed"
+                },
+                "HiringCafe": {
+                    "url": "https://hiringcafe.com/?searchState=%7B%22locations%22%3A%5B%7B%22id%22%3A%22FxY1yZQBoEtHp_8UEq7V%22%2C%22types%22%3A%5B%22country%22%5D%2C%22address_components%22%3A%5B%7B%22long_name%22%3A%22United+States%22%2C%22short_name%22%3A%22US%22%2C%22types%22%3A%5B%22country%22%5D%7D%5D%2C%22formatted_address%22%3A%22United+States%22%2C%22population%22%3A327167434%2C%22workplace_types%22%3A%5B%5D%2C%22options%22%3A%7B%22flexible_regions%22%3A%5B%22anywhere_in_continent%22%2C%22anywhere_in_world%22%5D%7D%7D%5D%2C%22searchQuery%22%3A%22full+stack+engineer%22%2C%22applicationFormEase%22%3A%5B%22Time+Consuming%22%5D%2C%22dateFetchedPastNDays%22%3A2%2C%22securityClearances%22%3A%5B%22None%22%5D%7D&page=1",
+                    "availableReported": "Pending",
                     "scrapableLinksQueued": 0,
                     "scrapedCount": 0,
                     "status": "completed"
+                },
+                "HiringCafe2": {
+                    "url": "https://hiringcafe.com/?searchState=%7B%22locations%22%3A%5B%7B%22id%22%3A%22FxY1yZQBoEtHp_8UEq7V%22%2C%22types%22%3A%5B%22country%22%5D%2C%22address_components%22%3A%5B%7B%22long_name%22%3A%22United+States%22%2C%22short_name%22%3A%22US%22%2C%22types%22%3A%5B%22country%22%5D%7D%5D%2C%22formatted_address%22%3A%22United+States%22%2C%22population%22%3A327167434%2C%22workplace_types%22%3A%5B%5D%2C%22options%22%3A%7B%22flexible_regions%22%3A%5B%22anywhere_in_continent%22%2C%22anywhere_in_world%22%5D%7D%7D%5D%2C%22searchQuery%22%3A%22full+stack+engineer%22%2C%22applicationFormEase%22%3A%5B%22Time+Consuming%22%5D%2C%22dateFetchedPastNDays%22%3A2%2C%22securityClearances%22%3A%5B%22None%22%5D%7D",
+                    "availableReported": "Pending",
+                    "scrapableLinksQueued": 0,
+                    "scrapedCount": 4,
+                    "status": "completed"
                 }
             },
-            "totalScraped": 0
+            "totalScraped": 71
         }
     },
-    "recentJobs": []
+    "recentJobs": [
+        {
+            "jobId": "hc_335094c120831fae5fc1",
+            "jobTitle": "Senior Software Engineer - Evinova",
+            "companyName": "Evinova",
+            "location": "Gaithersburg, Maryland, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$127352 - $167149.5",
+            "jobUrl": "https://astrazeneca.eightfold.ai/careers/job/563877691527036",
+            "scrapedAt": "2026-09-24T11:28:52.385642"
+        },
+        {
+            "jobId": "hc_2f5aa9bebc99c94b793e",
+            "jobTitle": "Sr Staff Software Engineer, Enablement Stack",
+            "companyName": "Qualcomm Technologies, Inc.",
+            "location": "Folsom, California, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$190200 - $285400",
+            "jobUrl": "https://qualcomm.eightfold.ai/careers/job/446717738735",
+            "scrapedAt": "2026-09-24T11:28:51.890964"
+        },
+        {
+            "jobId": "hc_d3913e067fbcb0fc3870",
+            "jobTitle": "Senior Software Engineer",
+            "companyName": "Western Governors University",
+            "location": "Salt Lake City, Utah, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$143700 - $222700",
+            "jobUrl": "https://jobs.wgu.edu/senior-software-engineer/job/P1-6559841-0",
+            "scrapedAt": "2026-09-24T11:28:51.397134"
+        },
+        {
+            "jobId": "hc_d282b3b82b1e3deebe57",
+            "jobTitle": "Software Engineer II Full Stack (Java/Node.js/Angular)",
+            "companyName": "Western Governors University",
+            "location": "Salt Lake City, Utah, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$118900 - $178500",
+            "jobUrl": "https://jobs.wgu.edu/software-engineer-ii-full-stack-java-node-js-angular/job/P1-6704742-0",
+            "scrapedAt": "2026-09-24T11:28:50.641601"
+        },
+        {
+            "jobId": "hc_f5bf2850d5afc471a534",
+            "jobTitle": "Java, React, Microservices, AWS Full Stack Sr Lead Software Engineer",
+            "companyName": "JPMorganChase",
+            "location": "Jersey City, New Jersey, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$175750 - $260000",
+            "jobUrl": "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions/job/210790858",
+            "scrapedAt": "2026-09-24T11:28:50.361343"
+        },
+        {
+            "jobId": "hc_09c9b1638ff7c26caa83",
+            "jobTitle": "Lead Software Engineer - AI/Supply Chain Full Stack",
+            "companyName": "JPMorganChase",
+            "location": "Houston, Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions/job/210788050",
+            "scrapedAt": "2026-09-24T11:28:50.079872"
+        },
+        {
+            "jobId": "hc_eaea1a9e236f8092ef6c",
+            "jobTitle": "Full-stack Java & React Software Engineer III",
+            "companyName": "JPMorgan Chase",
+            "location": "Plano, Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/requisitions/job/210792546",
+            "scrapedAt": "2026-09-24T11:28:49.790251"
+        },
+        {
+            "jobId": "hc_492a10590609db476b57",
+            "jobTitle": "Specialist, Software Engineer (Full Stack, AWS)",
+            "companyName": "Nationwide",
+            "location": "Columbus or Des Moines or Scottsdale or United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$95500 - $177500",
+            "jobUrl": "https://nationwide.wd1.myworkdayjobs.com/Nationwide_Career/job/Ohio---Columbus-Three-Nationwide-Plaza/Specialist--Software-Engineer--Full-Stack--AWS-_100338",
+            "scrapedAt": "2026-09-24T11:28:49.451582"
+        },
+        {
+            "jobId": "hc_de1c93b1d9ca36b456b3",
+            "jobTitle": "Senior Software Engineer",
+            "companyName": "Realtor.com",
+            "location": "Austin, Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://careers.newscorp.com/austin-tx/senior-software-engineer/3EDAB2C585F04C9EB43B39E5EF26418B/job/",
+            "scrapedAt": "2026-09-24T11:28:49.152786"
+        },
+        {
+            "jobId": "hc_d4d062d28240399680ca",
+            "jobTitle": "Senior Software Engineer, Full Stack",
+            "companyName": "Realtor.com",
+            "location": "Austin, Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://careers.newscorp.com/austin-tx/senior-software-engineer-full-stack/F90CFF0320924B04B8683FF4098E757E/job/",
+            "scrapedAt": "2026-09-24T11:28:48.887675"
+        },
+        {
+            "jobId": "hc_32dd1b02d4fa7d46db5e",
+            "jobTitle": "Full Stack Senior Software Engineerâ€“ Investment Risk Technology (Hybrid- Washington DC)",
+            "companyName": "T. Rowe Price",
+            "location": "Washington, District of Columbia, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$121000 - $206000",
+            "jobUrl": "https://troweprice.gr8people.com/jobs/22172",
+            "scrapedAt": "2026-09-24T11:28:48.627721"
+        },
+        {
+            "jobId": "hc_9d60e70f136c9854484c",
+            "jobTitle": "Information Technology Specialist - B (Junior Microsoft Full Stack .Net Developer)",
+            "companyName": "New York City School Construction Authority",
+            "location": "Queens, New York, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$85056 - $144361",
+            "jobUrl": "https://nycsca.wd1.myworkdayjobs.com/external_career_site/job/Queens/Information-Technology-Specialist---B--Junior-Microsoft-Full-Stack-Net-Developer-_R-FY27-24-1",
+            "scrapedAt": "2026-09-24T11:28:48.330379"
+        },
+        {
+            "jobId": "hc_9fece8131187a30821e0",
+            "jobTitle": "Software Engineer - Full Stack / .NET",
+            "companyName": "Regions",
+            "location": "Hoover or Charlotte or Atlanta",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$127767.75 - $168210",
+            "jobUrl": "https://regions.wd5.myworkdayjobs.com/regions_careers/job/Hoover-AL---Riverchase-Operations-Center-Birmingham-AL/Software-Engineer---Full-Stack---NET_R105757",
+            "scrapedAt": "2026-09-24T11:28:47.941091"
+        },
+        {
+            "jobId": "hc_c72ab1edc8341e814aef",
+            "jobTitle": "Package Design and Development Quality Assurance Engineer - Data Analytics",
+            "companyName": "Micron Technology",
+            "location": "Boise, Idaho, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://micron.eightfold.ai/careers/job/44631698",
+            "scrapedAt": "2026-09-24T11:28:47.682737"
+        },
+        {
+            "jobId": "hc_1455a1c0bc3f969dec8d",
+            "jobTitle": "Full Stack AI Engineer (Industrial and Physical AI)",
+            "companyName": "Micron Technology",
+            "location": "Boise, Idaho, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://micron.eightfold.ai/careers/job/44446889",
+            "scrapedAt": "2026-09-24T11:28:47.224668"
+        },
+        {
+            "jobId": "hc_cff26c2e86a32ae8aa52",
+            "jobTitle": "Senior Full-Stack AI Engineer (Agentic Systems)",
+            "companyName": "Quzara",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$125000 - $175000",
+            "jobUrl": "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=0d38460f-8bf3-4cc2-b8f3-c157e2ae07dd&ccId=19000101_000001&jobId=618188&lang=en_US",
+            "scrapedAt": "2026-09-24T11:28:46.916953"
+        },
+        {
+            "jobId": "hc_0ab2c90f14abadf6add7",
+            "jobTitle": "Senior Full Stack Software Developer",
+            "companyName": "Docupace Technologies LLC",
+            "location": "Philadelphia, Pennsylvania, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://recruiting.paylocity.com/Recruiting/Jobs/Details/4528356",
+            "scrapedAt": "2026-09-24T11:28:46.673883"
+        },
+        {
+            "jobId": "hc_c21f4f97beede7a224a3",
+            "jobTitle": "Staff Full-Stack Engineer, Experience Team",
+            "companyName": "ServiceNow",
+            "location": "San Diego or United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$149800 - $262200",
+            "jobUrl": "https://careers.servicenow.com/jobs/744000151407609/staff-full-stack-engineer-experience-team/",
+            "scrapedAt": "2026-09-24T11:28:46.390339"
+        },
+        {
+            "jobId": "hc_663c8207e58cbb1d2d37",
+            "jobTitle": "Jr. Full Stack Developer",
+            "companyName": "Hammerton",
+            "location": "Salt Lake City, Utah, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://secure6.saashr.com/ta/6200205.careers?ShowJob=738653313",
+            "scrapedAt": "2026-09-24T11:28:45.763177"
+        },
+        {
+            "jobId": "hc_cff26c2e86a32ae8aa52",
+            "jobTitle": "Full Stack Developer II",
+            "companyName": "Trillium Health Resources",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$92776 - $114061",
+            "jobUrl": "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=86242cb5-2fdf-4468-b205-d8aef6aa10d5&ccId=19000101_000001&jobId=592662&lang=en_US",
+            "scrapedAt": "2026-09-24T11:28:45.500279"
+        },
+        {
+            "jobId": "hc_ab9b213115d7b18fe91e",
+            "jobTitle": "Senior Software Engineer I - HTMX, Golang, React",
+            "companyName": "Optum Health",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://uhg.taleo.net/careersection/10780/jobdetail.ftl?job=2391157&lang=en",
+            "scrapedAt": "2026-09-24T11:28:45.230074"
+        },
+        {
+            "jobId": "hc_ab9b213115d7b18fe91e",
+            "jobTitle": "Senior Software Engineer I - Full stack Java React",
+            "companyName": "Optum",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://uhg.taleo.net/careersection/10780/jobdetail.ftl?job=2384564&lang=en",
+            "scrapedAt": "2026-09-24T11:28:44.934807"
+        },
+        {
+            "jobId": "hc_f4cc5d0f032109aec35c",
+            "jobTitle": "Lead Full Stack Software Engineer - Remote",
+            "companyName": "Optum Insight",
+            "location": "Wisconsin or Madison",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$112700 - $193200",
+            "jobUrl": "https://uhg.taleo.net/careersection/10000/jobdetail.ftl?job=2391151&lang=en",
+            "scrapedAt": "2026-09-24T11:28:44.415686"
+        },
+        {
+            "jobId": "hc_ed2058f17e16d07f62f0",
+            "jobTitle": "Sr. Full Stack Developer",
+            "companyName": "Pacific Life",
+            "location": "Newport Beach, California, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$137610 - $168190",
+            "jobUrl": "https://pacificlife.wd1.myworkdayjobs.com/pacificlifecareers/job/Newport-Beach-CA-800/Sr-Full-Stack-Developer_R17767",
+            "scrapedAt": "2026-09-24T11:28:43.921616"
+        },
+        {
+            "jobId": "hc_6c14207cffe21fb705cf",
+            "jobTitle": "Full Stack Developer",
+            "companyName": "PFSbrands",
+            "location": "Holts Summit, Missouri, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://recruiting.paylocity.com/Recruiting/Jobs/Details/4531318",
+            "scrapedAt": "2026-09-24T11:28:43.426640"
+        },
+        {
+            "jobId": "hc_24179e5f967818baa75f",
+            "jobTitle": "Senior Software Development Engineer",
+            "companyName": "Signify Health",
+            "location": "Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$92700 - $185400",
+            "jobUrl": "https://cvshealth.wd1.myworkdayjobs.com/cvs_health_careers/job/TX---Work-from-home/Senior-Software-Development-Engineer_R1029237",
+            "scrapedAt": "2026-09-24T11:28:43.082087"
+        },
+        {
+            "jobId": "hc_f777c7630502fd22ee1e",
+            "jobTitle": "Senior Full Stack Engineer, Agentic AI Platform",
+            "companyName": "CVS Health",
+            "location": "New York, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$101970 - $203940",
+            "jobUrl": "https://cvshealth.wd1.myworkdayjobs.com/cvs_health_careers/job/NY---Work-from-hom/Senior-Full-Stack-Engineer--Agentic-AI-Platform_R1047405",
+            "scrapedAt": "2026-09-24T11:28:42.565312"
+        },
+        {
+            "jobId": "hc_6ab56b36c4a7875c83d0",
+            "jobTitle": "Full-stack Engineer 4",
+            "companyName": "Capital One",
+            "location": "Plano, Texas, United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$179400 - $204700",
+            "jobUrl": "https://www.capitalonecareers.com/job/plano/full-stack-engineer-4/1732/101042091136",
+            "scrapedAt": "2026-09-24T11:28:41.966758"
+        },
+        {
+            "jobId": "hc_952bbfd9d81f2df0e37c",
+            "jobTitle": "Lead Java Full Stack Engineer",
+            "companyName": "Cognizant",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": "$65000 - $125000",
+            "jobUrl": "https://cognizant.taleo.net/careersection/lateral/jobdetail.ftl?job=00070690191&lang=en",
+            "scrapedAt": "2026-09-24T11:28:41.546599"
+        },
+        {
+            "jobId": "hc_0f60ec64a954dfc95d4c",
+            "jobTitle": "Java Full Stack Developer",
+            "companyName": "Cognizant",
+            "location": "United States",
+            "category": "Software Engineer",
+            "jobSource": "HiringCafe",
+            "salary": null,
+            "jobUrl": "https://tas-cognizant.taleo.net/careersection/lateral/jobdetail.ftl?job=00070596591&lang=en",
+            "scrapedAt": "2026-09-24T11:28:41.125380"
+        }
+    ]
 }
