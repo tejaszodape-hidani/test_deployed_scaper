@@ -1611,176 +1611,260 @@ def scrape_reed_jobs(driver, url, category, on_count=None, on_job_scraped=None, 
         
     return jobs
 
+def _parse_search_state_from_url(url, category):
+    """Extract searchState dict from a hiringcafe.com/?searchState=... URL."""
+    state = {}
+    try:
+        parsed = urlparse(url)
+        qs = parse_qs(parsed.query)
+        raw = qs.get('searchState', ['{}'])[0]
+        state = json.loads(raw)
+    except Exception:
+        pass
+    
+    # Ensure it always has a fallback search term
+    if 'searchQuery' not in state or not state['searchQuery']:
+        state['searchQuery'] = category
+    return state
+
+
 def scrape_hiring_cafe_jobs(driver, url, category, on_count=None, on_job_scraped=None, count_only=False):
-    print(f"\n[HiringCafe - {category}] Fetching jobs via curl_cffi session...")
+    """
+    Scrape HiringCafe using their official MCP (Model Context Protocol) API.
+    Endpoint: https://hiringcafe.com/api/mcp  (JSON-RPC, NOT behind Cloudflare)
+    This is the same approach as LinkedIn guest API - a plain HTTP endpoint
+    that works from any IP including Render datacenter IPs.
+    """
+    print(f"\n[HiringCafe - {category}] Fetching jobs via MCP API (no Cloudflare)...")
 
-    if not _CURL_CFFI_AVAILABLE:
-        print("  [HiringCafe] Error: curl_cffi is required.")
-        return []
+    MCP_URL = "https://hiringcafe.com/api/mcp"
+    MCP_HEADERS = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; JobScraper/1.0)",
+    }
 
-    target_url = url if (url and url.startswith("http")) else f"https://hiringcafe.com/?searchState=%7B%22searchQuery%22%3A%22{category.replace(' ', '+')}%22%7D"
+    # Extract full search state from URL to match frontend filters
+    state = _parse_search_state_from_url(url, category)
+    search_query = state.get('searchQuery', category)
+    print(f"  [HiringCafe] Search query: '{search_query}'")
 
-    # Strategy: cycle through ALL impersonations with a persistent session.
-    # A session carries cookies so Cloudflare's challenge cookie is reused once earned.
-    # On Render the IP is datacenter — we try every fingerprint before giving up.
-    IMPERSONATE_ORDER = [
-        "safari17_0", "chrome124", "safari15_3",
-        "chrome120", "chrome116", "edge101",
+    # Map frontend state to MCP API arguments
+    base_args = {
+        "search": search_query,
+        "location": "United States",
+        "limit": 25,
+    }
+    
+    if "dateFetchedPastNDays" in state:
+        base_args["posted_within_days"] = int(state["dateFetchedPastNDays"])
+    else:
+        base_args["posted_within_days"] = 7
+        
+    if "applicationFormEase" in state:
+        base_args["application_form_ease"] = state["applicationFormEase"]
+        
+    if "securityClearances" in state:
+        base_args["security_clearances"] = state["securityClearances"]
+
+    # Step 1: Search jobs via MCP using multi-dimensional pagination.
+    # The MCP API caps at 25 jobs per call with no offset/cursor.
+    # We multiply our coverage by combining seniority and workplace buckets (12 total calls).
+    SENIORITY_BUCKETS = [
+        ["Entry Level", "No Prior Experience Required"],
+        ["Mid Level"],
+        ["Senior Level", "Director Level", "Manager Level"],
+    ]
+    WORKPLACE_BUCKETS = [
+        ["Remote"],
+        ["Onsite"],
+        ["Hybrid"],
+        None  # Unspecified
     ]
 
-    def _extract_jobs_from_html(page_content):
-        """Parse __NEXT_DATA__ and return list of job dicts, or None on failure."""
-        if "__NEXT_DATA__" not in page_content:
-            return None
-        from bs4 import BeautifulSoup
-        soup = BeautifulSoup(page_content, 'html.parser')
-        script_tag = soup.find('script', id='__NEXT_DATA__')
-        if not script_tag:
-            return None
-        data = json.loads(script_tag.string)
-        hits = data.get('props', {}).get('pageProps', {}).get('ssrHits', [])
-        return hits
+    all_text_blocks = []
+    seen_ids_search = set()
+    
+    for sen_bucket in SENIORITY_BUCKETS:
+        for wp_bucket in WORKPLACE_BUCKETS:
+            args = base_args.copy()
+            args["seniority_levels"] = sen_bucket
+            if wp_bucket:
+                args["workplace_types"] = wp_bucket
+                
+            try:
+                payload = {
+                    "jsonrpc": "2.0",
+                    "method": "tools/call",
+                    "id": 1,
+                    "params": {
+                        "name": "search_jobs",
+                        "arguments": args
+                    }
+                }
+                r = _requests.post(MCP_URL, headers=MCP_HEADERS, json=payload, timeout=30)
+                if r.status_code == 200:
+                    text = r.json().get("result", {}).get("content", [{}])[0].get("text", "")
+                    if text:
+                        all_text_blocks.append(text)
+                        bucket_ids = set(re.findall(r'\*\*Job ID:\*\*\s*(\S+)', text))
+                        new_count = len(bucket_ids - seen_ids_search)
+                        seen_ids_search.update(bucket_ids)
+                        wp_label = wp_bucket[0] if wp_bucket else "Any"
+                        print(f"  [HiringCafe] {sen_bucket[0]} | {wp_label}: +{new_count} unique (total: {len(seen_ids_search)})")
+                else:
+                    print(f"  [HiringCafe] MCP bucket {sen_bucket[0]}|{wp_bucket} error: HTTP {r.status_code}")
+            except Exception as e:
+                print(f"  [HiringCafe] MCP bucket {sen_bucket[0]}|{wp_bucket} failed: {e}")
+            time.sleep(0.3)
 
-    # ── Phase 1: curl_cffi session cycling ─────────────────────────────────────
-    session = cffi_requests.Session()
-    page_content = None
-    succeeded_impersonation = None
-
-    for imp in IMPERSONATE_ORDER:
-        try:
-            print(f"  [HiringCafe] Trying impersonation: {imp}...")
-            r = session.get(target_url, impersonate=imp, timeout=20)
-            if r.status_code == 200 and "__NEXT_DATA__" in r.text:
-                page_content = r.text
-                succeeded_impersonation = imp
-                print(f"  [HiringCafe] Bypass SUCCESS with {imp}!")
-                break
-            else:
-                print(f"  [HiringCafe] {imp} blocked (HTTP {r.status_code}). Trying next...")
-                time.sleep(random.uniform(2.0, 3.5))
-        except Exception as e:
-            print(f"  [HiringCafe] {imp} error: {e}. Trying next...")
-            time.sleep(1.0)
-
-    # ── Phase 2: Selenium fallback (last resort) ────────────────────────────────
-    if not page_content and driver:
-        print("  [HiringCafe] All curl_cffi impersonations blocked. Trying Selenium...")
-        try:
-            driver.delete_all_cookies()
-            driver.get(target_url)
-            time.sleep(random.uniform(6.0, 9.0))
-            page_content = driver.page_source
-            if "__NEXT_DATA__" in page_content:
-                print("  [HiringCafe] Selenium bypass SUCCESS!")
-            else:
-                print("  [HiringCafe] Selenium also blocked. Giving up.")
-                return []
-        except Exception as selenium_e:
-            print(f"  [HiringCafe] Selenium fallback failed: {selenium_e}")
-            return []
-
-    if not page_content or "__NEXT_DATA__" not in page_content:
-        print("  [HiringCafe] Could not retrieve page. Returning empty.")
+    if not all_text_blocks:
+        print("  [HiringCafe] MCP returned no results.")
         return []
 
-    hits = _extract_jobs_from_html(page_content)
-    if not hits:
-        print("  [HiringCafe] JSON payload was empty or unparseable.")
-        return []
+    text = "\n---\n".join(all_text_blocks)
 
-    print(f"  [HiringCafe] Extracted {len(hits)} perfectly structured jobs!")
+    # Step 2: Parse markdown response
+    # Format: ### [Title](url)\n**Company**\n- **Field:** value\n\nSummary\n---
+    job_blocks = re.split(r'\n---+\n', text)
+    raw_jobs = []
+    for block in job_blocks:
+        block = block.strip()
+        if not block or not block.startswith('###'):
+            continue
+
+        title_m = re.search(r'###\s+\[([^\]]+)\]\(([^)]+)\)', block)
+        company_m = re.search(r'^\*\*([^*]+)\*\*', block, re.MULTILINE)
+        location_m = re.search(r'\*\*Location:\*\*\s*(.+)', block)
+        salary_m = re.search(r'\*\*Compensation:\*\*\s*(.+)', block)
+        job_type_m = re.search(r'\*\*Employment type:\*\*\s*(.+)', block)
+        workplace_m = re.search(r'\*\*Workplace:\*\*\s*(.+)', block)
+        posted_m = re.search(r'\*\*Posted:\*\*\s*(.+)', block)
+        seniority_m = re.search(r'\*\*Seniority:\*\*\s*(.+)', block)
+        job_id_m = re.search(r'\*\*Job ID:\*\*\s*(.+)', block)
+
+        if not title_m:
+            continue
+
+        title = title_m.group(1).strip()
+        job_page_url = title_m.group(2).split('?')[0]  # strip utm params
+        company = company_m.group(1).strip() if company_m else "Unknown"
+        location = location_m.group(1).strip() if location_m else "United States"
+        salary_raw = salary_m.group(1).strip() if salary_m else None
+        job_type = job_type_m.group(1).strip() if job_type_m else "Full Time"
+        workplace = workplace_m.group(1).strip() if workplace_m else ""
+        post_time = posted_m.group(1).strip() if posted_m else datetime.now().isoformat()
+        seniority = seniority_m.group(1).strip() if seniority_m else None
+        job_id = job_id_m.group(1).strip() if job_id_m else None
+
+        if workplace:
+            job_type = f"{workplace} - {job_type}"
+
+        # The text after all bullet points is the summary/description
+        desc_text = re.sub(r'###.*?\n', '', block)
+        desc_text = re.sub(r'\*\*[^*]+\*\*.*\n', '', desc_text)
+        desc_text = re.sub(r'-\s+\*\*[^*]+:\*\*.*\n', '', desc_text)
+        desc_text = desc_text.strip()
+
+        raw_jobs.append({
+            'title': title,
+            'company': company,
+            'location': location,
+            'salary': salary_raw,
+            'job_type': job_type[:50],
+            'post_time': post_time,
+            'seniority': seniority,
+            'job_id': job_id,
+            'job_url': job_page_url,
+            'desc_text': desc_text,
+        })
+
+    print(f"  [HiringCafe] Parsed {len(raw_jobs)} jobs from MCP response (across all seniority buckets).")
 
     if count_only:
-        if on_count: on_count(category, "HiringCafe", str(len(hits)), len(hits))
+        if on_count: on_count(category, "HiringCafe", str(len(raw_jobs)), len(raw_jobs))
         return []
 
-    # Use the succeeded impersonation for any follow-up API calls
-    imp = succeeded_impersonation or "safari17_0"
+    if not raw_jobs:
+        print("  [HiringCafe] No jobs parsed.")
+        return []
+
+    # Step 3: Build job records — MCP summary text is already the description.
+    # Dedup by job_id in case two seniority buckets returned the same listing.
+    seen_job_ids = set()
     jobs = []
-    for i, hit in enumerate(hits[:HIRINGCAFE_JOBS_PER_URL]):
-        v5 = hit.get('v5_processed_job_data', {})
-        info = hit.get('job_information', {})
+    for i, rj in enumerate(raw_jobs):
+        job_id = rj['job_id']
+        if job_id and job_id in seen_job_ids:
+            continue
+        if job_id:
+            seen_job_ids.add(job_id)
 
-        raw_id = hit.get('id') or hit.get('job_id')
-        title = info.get('title') or v5.get('core_job_title') or "Software Engineer"
-        company = v5.get('company_name') or hit.get('enriched_company_data', {}).get('name') or "Unknown"
-        location = v5.get('formatted_workplace_location') or "United States"
+        full_desc = rj['desc_text']
 
-        commitment = v5.get('commitment', ['Full Time'])
-        workplace_type = v5.get('workplace_type', 'Remote')
-        job_type = f"{workplace_type} - {commitment[0]}" if commitment else workplace_type
+        # Fetch full job description via get_job_details tool if we have a job ID
+        if job_id:
+            try:
+                detail_payload = {
+                    "jsonrpc": "2.0",
+                    "method": "tools/call",
+                    "id": i + 100,
+                    "params": {
+                        "name": "get_job_details",
+                        "arguments": {"job_id": job_id}
+                    }
+                }
+                dr = _requests.post(MCP_URL, headers=MCP_HEADERS, json=detail_payload, timeout=15)
+                if dr.status_code == 200:
+                    detail_text = dr.json().get("result", {}).get("content", [{}])[0].get("text", "")
+                    if detail_text and len(detail_text.strip()) > len(full_desc):
+                        full_desc = detail_text
+            except Exception as e:
+                pass  # fallback to summary text if this fails
 
-        yoe = v5.get('min_industry_and_role_yoe')
-        experience = f"{yoe}+ Years" if yoe is not None else None
-
-        skills = v5.get('technical_tools', [])
-        if not skills:
-            skills = extract_skills_from_text(v5.get('requirements_summary', ''))
-
-        post_time = v5.get('estimated_publish_date') or datetime.now().isoformat()
-
-        salary = None
-        if v5.get('yearly_min_compensation') and v5.get('yearly_max_compensation'):
-            salary = f"${v5['yearly_min_compensation']} - ${v5['yearly_max_compensation']}"
-
-        job_url = hit.get('apply_url')
-        if not job_url and raw_id:
-            slug = re.sub(r"[^a-zA-Z0-9-]", "-", title.lower())
-            job_url = f"https://hiringcafe.com/job/{slug}-{raw_id}"
-
-        domain = hit.get('enriched_company_data', {}).get('homepage_uri')
-        logo_url = None
-        if domain:
-            logo_url = f"https://s2.googleusercontent.com/s2/favicons?domain={domain}&sz=128"
-
-        # Fetch full description from API if not present
-        full_desc_html = hit.get('job_information', {}).get('description') or v5.get('description') or v5.get('original_description')
-        if not full_desc_html and raw_id:
-            for jd_attempt in range(3):
-                try:
-                    jd_url = f"https://hiringcafe.com/api/job-description?id={raw_id}"
-                    jd_r = session.get(jd_url, impersonate=imp, timeout=8)
-                    if jd_r.status_code == 200:
-                        fetched_desc = jd_r.json().get('job', {}).get('job_information', {}).get('description')
-                        if fetched_desc:
-                            full_desc_html = fetched_desc
-                        break
-                except Exception:
-                    if jd_attempt < 2:
-                        time.sleep(1)
-                    pass
-
-        final_desc = full_desc_html or v5.get('requirements_summary', '')
+        job_url = rj['job_url'] or (f"https://hiringcafe.com/job/{job_id}" if job_id else "")
+        
+        # Extract structured data from the detailed markdown
+        experience = rj['seniority'] or "Not Specified"
+        skills = []
+        
+        seniority_m = re.search(r'-\s*\*\*Seniority:\*\*\s*(.+)', full_desc)
+        if seniority_m:
+            experience = seniority_m.group(1).strip()
+            
+        tools_m = re.search(r'-\s*\*\*Technical tools:\*\*\s*(.+)', full_desc)
+        if tools_m:
+            skills_raw = tools_m.group(1).split(',')
+            skills = [s.strip() for s in skills_raw if s.strip()]
+        else:
+            skills = extract_skills_from_text(full_desc)
 
         job_data = {
             "jobId":            make_stable_job_id('HiringCafe', job_url, i),
-            "jobTitle":         title[:500],
-            "companyName":      company[:255],
-            "companyLogo":      logo_url,
-            "companyLocation":  location[:255],
-            "jobLocation":      location[:255],
-            "jobType":          job_type[:50],
+            "jobTitle":         rj['title'][:500],
+            "companyName":      rj['company'][:255],
+            "companyLogo":      None,
+            "companyLocation":  rj['location'][:255],
+            "jobLocation":      rj['location'][:255],
+            "jobType":          rj['job_type'],
             "yearOfExperience": experience,
             "skills":           skills,
-            "jobPostTime":      post_time,
-            "jobDescription":   final_desc,
-            "salary":           salary,
+            "jobPostTime":      rj['post_time'],
+            "jobDescription":   full_desc,
+            "salary":           rj['salary'],
             "category":         category,
             "jobSource":        "HiringCafe",
-            "jobUrl":           (job_url or "")[:1000],
+            "jobUrl":           job_url[:1000],
             "createdAt":        datetime.now().isoformat(),
             "updatedAt":        datetime.now().isoformat(),
         }
-
-        if not final_desc or len(final_desc.strip()) < 200:
-            print(f"  [HiringCafe] Skipping job {title[:30]} - description too short ({len(final_desc) if final_desc else 0} chars)")
-            continue
 
         jobs.append(job_data)
         if on_job_scraped: on_job_scraped(category, "HiringCafe", job_data)
 
     print(f"\n[HiringCafe] Done: {len(jobs)} jobs collected for '{category}'")
     return jobs
+
 
 
 #---------INDEED SCRAPPER ----------
